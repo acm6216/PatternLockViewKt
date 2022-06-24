@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/root"
+    tools:context=".MainActivity">
+
+    <app.mango.patternlockview.views.PatternLockView
+        android:id="@+id/patter_lock_view_auto"
+        android:layout_width="84dp"
+        app:aspectRatio="square"
+        app:dotCount="4"
+        app:wrongStateColor="@color/pomegranate"
+        app:correctStateColor="?colorPrimary"
+        app:normalStateColor="?colorPrimary"
+        app:pathEndAnimationDuration="100"
+        app:aspectRatioEnabled="true"
+        app:dotAnimationDuration="150"
+        android:layout_marginBottom="56dp"
+        android:layout_height="84dp"/>
+
+    <app.mango.patternlockview.views.PatternLockView
+        android:id="@+id/patter_lock_view"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        app:aspectRatio="square"
+        app:dotNormalSize="10dp"
+        app:dotSelectedSize="24dp"
+        app:pathWidth="3dp"
+        app:dotCount="4"
+        app:wrongStateColor="@color/pomegranate"
+        app:correctStateColor="?colorPrimary"
+        app:normalStateColor="?colorPrimary"
+        app:pathEndAnimationDuration="100"
+        app:aspectRatioEnabled="true"
+        app:dotAnimationDuration="150"/>
+
+</androidx.appcompat.widget.LinearLayoutCompat>
