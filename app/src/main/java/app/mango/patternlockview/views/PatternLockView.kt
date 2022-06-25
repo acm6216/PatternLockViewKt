@@ -7,7 +7,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
-import android.os.Debug
 import android.os.Parcelable
 import android.os.SystemClock
 import android.util.AttributeSet
@@ -208,15 +207,13 @@ class PatternLockView @JvmOverloads constructor(
         pathPaint.strokeWidth = mPathWidth.toFloat()
 
         if (!isInEditMode) {
-            mFastOutSlowInInterpolator = android.R.interpolator.fast_out_slow_in.loadInterpolator()
-            mLinearOutSlowInInterpolator = android.R.interpolator.linear_out_slow_in.loadInterpolator()
+            mFastOutSlowInInterpolator = loadInterpolator(android.R.interpolator.fast_out_slow_in)
+            mLinearOutSlowInInterpolator = loadInterpolator(android.R.interpolator.linear_out_slow_in)
         }
     }
 
-    private fun Int.loadInterpolator() = AnimationUtils.loadInterpolator(context, this)
-
+    private fun loadInterpolator(@InterpolatorRes inRes:Int) = AnimationUtils.loadInterpolator(context, inRes)
     private fun getDimensionInPx(@DimenRes dimenRes: Int): Float = context.resources.getDimension(dimenRes)
-
     private fun getColor(@ColorRes colorRes: Int): Int = ContextCompat.getColor(context, colorRes)
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

@@ -11,9 +11,12 @@ class MainActivity : AppCompatActivity() {
 
         val auto = findViewById<PatternLockView>(R.id.patter_lock_view_auto)
         auto.setInputEnabled(false)
-        findViewById<PatternLockView>(R.id.patter_lock_view)
-            .setPatternLockListener(onComplete = {
-                auto.setPattern(PatternLockView.PatternViewMode.AUTO_DRAW,it)
-            })
+        findViewById<PatternLockView>(R.id.patter_lock_view).run {
+            setPatternLockListener(
+                onComplete = {
+                    auto.setPattern(PatternLockView.PatternViewMode.AUTO_DRAW, it)
+                }
+            )
+        }
     }
 }
