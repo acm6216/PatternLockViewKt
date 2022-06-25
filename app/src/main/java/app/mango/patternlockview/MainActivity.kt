@@ -13,7 +13,7 @@ class MainActivity : AppCompatActivity() {
         auto.setInputEnabled(false)
         findViewById<PatternLockView>(R.id.patter_lock_view)
             .setPatternLockListener(onComplete = {
-                auto.setPattern(PatternLockView.PatternViewMode.WRONG,it)
+                auto.setPattern(PatternLockView.PatternViewMode.AUTO_DRAW,it)
             })
     }
 }

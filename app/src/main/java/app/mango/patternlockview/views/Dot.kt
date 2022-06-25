@@ -23,9 +23,7 @@ class Dot : Parcelable {
             return sDots[row][column]
         }
 
-        /**
-         * 从其标识符获取单元格
-         */
+        /** 从其标识符获取单元格 */
         @Synchronized
         fun of(id: Int): Dot {
             return of(id / PatternLockView.sDotCount, id % PatternLockView.sDotCount)
@@ -57,11 +55,8 @@ class Dot : Parcelable {
         this.column = column
     }
 
-    /**
-     * 获取点的标识符。从左到右，从上到下，从0开始计数
-     */
-    val id: Int
-        get() = row * PatternLockView.sDotCount + column
+    /** 获取点的标识符。从左到右，从上到下，从0开始计数 */
+    val id: Int get() = row * PatternLockView.sDotCount + column
 
     override fun toString(): String = "(Row = $row, Col = $column)"
 
@@ -70,14 +65,9 @@ class Dot : Parcelable {
                 && row == other.row) else super.equals(other)
     }
 
-    override fun hashCode(): Int {
-        var result = row
-        result = 31 * result + column
-        return result
-    }
+    override fun hashCode(): Int = 31 * row + column
 
     override fun describeContents(): Int = 0
-
 
     override fun writeToParcel(dest: Parcel, flags: Int) {
         dest.writeInt(column)

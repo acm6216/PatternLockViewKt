@@ -1,7 +1,5 @@
 package app.mango.patternlockview.views
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
@@ -20,6 +18,7 @@ import android.view.accessibility.AccessibilityManager
 import android.view.animation.AnimationUtils
 import android.view.animation.Interpolator
 import androidx.annotation.*
+import androidx.core.animation.doOnEnd
 import androidx.core.content.ContextCompat
 import app.mango.patternlockview.R
 import kotlin.math.*
@@ -34,11 +33,11 @@ class PatternLockView @JvmOverloads constructor(
     @Retention(AnnotationRetention.SOURCE)
     annotation class AspectRatio {
         companion object {
-            // 宽度和高度是一样的。最小宽度和高度
+            /**宽度和高度是一样的。最小宽度和高度*/
             const val ASPECT_RATIO_SQUARE = 0
-            // 宽度将被固定。高度将是宽度和高度的最小值
+            /**宽度将被固定。高度将是宽度和高度的最小值*/
             const val ASPECT_RATIO_WIDTH_BIAS = 1
-            // 高度是固定的。宽度将是宽度和高度的最小值
+            /**高度是固定的。宽度将是宽度和高度的最小值*/
             const val ASPECT_RATIO_HEIGHT_BIAS = 2
         }
     }
@@ -47,21 +46,11 @@ class PatternLockView @JvmOverloads constructor(
     @Retention(AnnotationRetention.SOURCE)
     annotation class PatternViewMode {
         companion object {
-            /**
-             * 此状态表示用户正确绘制的模式。
-             * 路径的颜色和圆点都将被更改为这种颜色。
-             */
+            /** 此状态表示用户正确绘制的模式。路径的颜色和圆点都将被更改为这种颜色。*/
             const val CORRECT = 0
-
-            /**
-             * 自动绘制模式：演示或教程。
-             */
+            /** 自动绘制模式：演示或教程。 */
             const val AUTO_DRAW = 1
-
-            /**
-             * 此状态表示用户错误绘制的模式。
-             * 路径的颜色和圆点都将被更改为这种颜色。
-             */
+            /** 此状态表示用户错误绘制的模式。路径的颜色和圆点都将被更改为这种颜色。*/
             const val WRONG = 2
         }
     }
@@ -82,14 +71,11 @@ class PatternLockView @JvmOverloads constructor(
          * 整个动画应该使用这个常量来完成模式的长度。
          */
         private const val MILLIS_PER_CIRCLE_ANIMATING = 700
-
-        // 动画一个点所花费的时间(以米为单位)
+        /** 动画一个点所花费的时间(以米为单位) */
         private const val DEFAULT_DOT_ANIMATION_DURATION = 190
-
-        // 动画路径结束所花费的时间(以米为单位)
+        /** 动画路径结束所花费的时间(以米为单位) */
         private const val DEFAULT_PATH_END_ANIMATION_DURATION = 100
-
-        // 这可以用来避免更新显示非常小的动作或嘈杂的面板
+        /** 这可以用来避免更新显示非常小的动作或嘈杂的面板 */
         private const val DEFAULT_DRAG_THRESHOLD = 0.0f
     }
 
@@ -204,16 +190,12 @@ class PatternLockView @JvmOverloads constructor(
         // 图案总是对称的
         mPatternSize = sDotCount * sDotCount
         mPatternDrawLookup = Array(sDotCount) {
-            BooleanArray(
-                sDotCount
-            )
+            BooleanArray(sDotCount)
         }
 
         mDotStates = Array(sDotCount){
             Array(sDotCount){
-                DotState().apply {
-                    mSize = mDotNormalSize.toFloat()
-                }
+                DotState(mSize = mDotNormalSize.toFloat())
             }
         }
 
@@ -226,20 +208,16 @@ class PatternLockView @JvmOverloads constructor(
         pathPaint.strokeWidth = mPathWidth.toFloat()
 
         if (!isInEditMode) {
-            mFastOutSlowInInterpolator = AnimationUtils.loadInterpolator(
-                context, android.R.interpolator.fast_out_slow_in
-            )
-            mLinearOutSlowInInterpolator = AnimationUtils.loadInterpolator(
-                context, android.R.interpolator.linear_out_slow_in
-            )
+            mFastOutSlowInInterpolator = android.R.interpolator.fast_out_slow_in.loadInterpolator()
+            mLinearOutSlowInInterpolator = android.R.interpolator.linear_out_slow_in.loadInterpolator()
         }
     }
 
-    private fun getDimensionInPx(@DimenRes dimenRes: Int): Float
-        = context.resources.getDimension(dimenRes)
+    private fun Int.loadInterpolator() = AnimationUtils.loadInterpolator(context, this)
 
-    private fun getColor(@ColorRes colorRes: Int): Int
-        = ContextCompat.getColor(context, colorRes)
+    private fun getDimensionInPx(@DimenRes dimenRes: Int): Float = context.resources.getDimension(dimenRes)
+
+    private fun getColor(@ColorRes colorRes: Int): Int = ContextCompat.getColor(context, colorRes)
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -276,8 +254,7 @@ class PatternLockView @JvmOverloads constructor(
 
         if (mPatternViewMode == PatternViewMode.AUTO_DRAW) {
             val oneCycle: Int = (patternSize + 1) * MILLIS_PER_CIRCLE_ANIMATING
-            val spotInCycle =
-                (SystemClock.elapsedRealtime() - mAnimatingPeriodStart).toInt() % oneCycle
+            val spotInCycle = (SystemClock.elapsedRealtime() - mAnimatingPeriodStart).toInt() % oneCycle
             val numCircles: Int = spotInCycle / MILLIS_PER_CIRCLE_ANIMATING
             clearPatternDrawLookup()
             for (i in 0 until numCircles) {
@@ -289,12 +266,10 @@ class PatternLockView @JvmOverloads constructor(
                 val percentageOfNextCircle: Float =
                     ((spotInCycle % MILLIS_PER_CIRCLE_ANIMATING).toFloat()
                             / MILLIS_PER_CIRCLE_ANIMATING)
-                val currentDot: Dot =
-                    pattern[numCircles - 1]
+                val currentDot: Dot = pattern[numCircles - 1]
                 val centerX = getCenterXForColumn(currentDot.column)
                 val centerY = getCenterYForRow(currentDot.row)
-                val nextDot: Dot =
-                    pattern[numCircles]
+                val nextDot: Dot = pattern[numCircles]
                 val dx = (percentageOfNextCircle
                         * (getCenterXForColumn(nextDot.column) - centerX))
                 val dy = (percentageOfNextCircle
@@ -309,16 +284,16 @@ class PatternLockView @JvmOverloads constructor(
         currentPath.rewind()
 
         // 画点
-        for (i in 0 until sDotCount) {
-            val centerY = getCenterYForRow(i)
-            for (j in 0 until sDotCount) {
-                val dotState = mDotStates[i][j]
-                val centerX = getCenterXForColumn(j)
+        for (column in 0 until sDotCount) {
+            val centerY = getCenterYForRow(column)
+            for (row in 0 until sDotCount) {
+                val dotState = mDotStates[column][row]
+                val centerX = getCenterXForColumn(row)
                 val size = dotState.mSize * dotState.mScale
                 val translationY = dotState.mTranslateY
                 drawCircle(
                     canvas, centerX.toInt().toFloat(), centerY.toInt() + translationY,
-                    size, drawLookupTable[i][j], dotState.mAlpha
+                    size, drawLookupTable[column][row], dotState.mAlpha
                 )
             }
         }
@@ -433,50 +408,29 @@ class PatternLockView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!mInputEnabled || !isEnabled) return false
 
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                handleActionDown(event)
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                handleActionUp(event)
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                handleActionMove(event)
-                return true
-            }
+        return when (event.action) {
+            MotionEvent.ACTION_DOWN -> handleActionDown(event)
+            MotionEvent.ACTION_UP -> handleActionUp(event)
+            MotionEvent.ACTION_MOVE -> handleActionMove(event)
             MotionEvent.ACTION_CANCEL -> {
                 mPatternInProgress = false
                 resetPattern()
                 notifyPatternCleared()
-                if (PROFILE_DRAWING) {
-                    if (mDrawingProfilingStarted) {
-                        Debug.stopMethodTracing()
-                        mDrawingProfilingStarted = false
-                    }
+                if (PROFILE_DRAWING&&mDrawingProfilingStarted) {
+                    mDrawingProfilingStarted = false
                 }
-                return true
+                true
             }
+            else -> false
         }
-        return false
     }
 
-    /**
-     * SET
-     * */
+    /** SET */
 
     /**
-     * 设置模式，不是等待用户输入。
-     * 您可以将其用于帮助或演示目的
-     *
-     * @param patternViewMode The mode in which the pattern should be displayed
-     * @param pattern         The pattern
+     * 设置模式，不是等待用户输入。您可以将其用于帮助或演示目的。
      */
-    fun setPattern(
-        @PatternViewMode patternViewMode: Int,
-        pattern: List<Dot>
-    ) {
+    fun setPattern(@PatternViewMode patternViewMode: Int, pattern: List<Dot>) {
         mPattern.clear()
         mPattern.addAll(pattern)
         clearPatternDrawLookup()
@@ -487,8 +441,7 @@ class PatternLockView @JvmOverloads constructor(
     }
 
     /**
-     * 设置当前模式的显示模式。
-     * 结果：正确或错误。
+     * 设置当前模式的显示模式。结果：正确或错误。
      */
     fun setViewMode(@PatternViewMode patternViewMode: Int) {
         mPatternViewMode = patternViewMode
@@ -510,15 +463,11 @@ class PatternLockView @JvmOverloads constructor(
         mPatternSize = sDotCount * sDotCount
         mPattern.clear()
         mPatternDrawLookup = Array(sDotCount) {
-            BooleanArray(
-                sDotCount
-            )
+            BooleanArray(sDotCount)
         }
         mDotStates = Array(sDotCount){
             Array(sDotCount){
-                DotState().apply {
-                    mSize = mDotNormalSize.toFloat()
-                }
+                DotState(mSize = mDotNormalSize.toFloat())
             }
         }
         requestLayout()
@@ -601,10 +550,8 @@ class PatternLockView @JvmOverloads constructor(
     }
 
     fun setPatternLockListener(
-        onStarted:(()->Unit)?=null,
-        onCleared:(()->Unit)?=null,
-        onProgress:((List<Dot>)->Unit)?=null,
-        onComplete:((List<Dot>)->Unit)?=null
+        onStarted:(()->Unit)?=null, onCleared:(()->Unit)?=null,
+        onProgress:((List<Dot>)->Unit)?=null, onComplete:((List<Dot>)->Unit)?=null
     ) {
         doStarted = onStarted
         doCleared = onCleared
@@ -660,9 +607,9 @@ class PatternLockView @JvmOverloads constructor(
     }
 
     private fun clearPatternDrawLookup() {
-        for (i in 0 until sDotCount) {
-            for (j in 0 until sDotCount) {
-                mPatternDrawLookup[i][j] = false
+        for (column in 0 until sDotCount) {
+            for (row in 0 until sDotCount) {
+                mPatternDrawLookup[column][row] = false
             }
         }
     }
@@ -680,18 +627,15 @@ class PatternLockView @JvmOverloads constructor(
             var fillInGapDot: Dot? = null
             val pattern:ArrayList<Dot> = mPattern
             if (pattern.isNotEmpty()) {
-                val lastDot: Dot =
-                    pattern[pattern.size - 1]
+                val lastDot: Dot = pattern[pattern.size - 1]
                 val dRow: Int = dot.row - lastDot.row
                 val dColumn: Int = dot.column - lastDot.column
-                var fillInRow: Int = lastDot.row
-                var fillInColumn: Int = lastDot.column
-                if (abs(dRow) == 2 && abs(dColumn) != 1) {
-                    fillInRow = lastDot.row + if (dRow > 0) 1 else -1
-                }
-                if (abs(dColumn) == 2 && abs(dRow) != 1) {
-                    fillInColumn = lastDot.column + if (dColumn > 0) 1 else -1
-                }
+                val fillInRow: Int = if (abs(dRow) == 2 && abs(dColumn) != 1) {
+                    lastDot.row + if (dRow > 0) 1 else -1
+                }else lastDot.row
+                val fillInColumn: Int = if (abs(dColumn) == 2 && abs(dRow) != 1) {
+                    lastDot.column + if (dColumn > 0) 1 else -1
+                }else lastDot.column
                 fillInGapDot = Dot.of(fillInRow, fillInColumn)
             }
             if (fillInGapDot != null
@@ -707,9 +651,8 @@ class PatternLockView @JvmOverloads constructor(
                             or HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
                 )
             }
-            return dot
         }
-        return null
+        return dot
     }
 
     private fun addCellToPattern(newDot: Dot) {
@@ -748,22 +691,18 @@ class PatternLockView @JvmOverloads constructor(
         startX: Float, startY: Float, targetX: Float,
         targetY: Float
     ) {
-        val valueAnimator = ValueAnimator.ofFloat(0f, 1f)
-        valueAnimator.addUpdateListener { animation ->
-            val t = animation.animatedValue as Float
-            state.mLineEndX = (1 - t) * startX + t * targetX
-            state.mLineEndY = (1 - t) * startY + t * targetY
-            invalidate()
-        }
-        valueAnimator.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                state.mLineAnimator = null
+        state.mLineAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            addUpdateListener { animation ->
+                val t = animation.animatedValue as Float
+                state.mLineEndX = (1 - t) * startX + t * targetX
+                state.mLineEndY = (1 - t) * startY + t * targetY
+                invalidate()
             }
-        })
-        valueAnimator.interpolator = mFastOutSlowInInterpolator
-        valueAnimator.duration = mPathEndAnimationDuration.toLong()
-        valueAnimator.start()
-        state.mLineAnimator = valueAnimator
+            doOnEnd { state.mLineAnimator = null }
+            interpolator = mFastOutSlowInInterpolator
+            duration = mPathEndAnimationDuration.toLong()
+            start()
+        }
     }
 
     private fun startSizeAnimation(
@@ -771,37 +710,27 @@ class PatternLockView @JvmOverloads constructor(
         interpolator: Interpolator, state: DotState,
         endRunnable: Runnable?
     ) {
-        val valueAnimator = ValueAnimator.ofFloat(start, end)
-        valueAnimator.addUpdateListener { animation ->
-            state.mSize = (animation.animatedValue as Float)
-            invalidate()
+        ValueAnimator.ofFloat(start, end).apply {
+            addUpdateListener {
+                state.mSize = (it.animatedValue as Float)
+                invalidate()
+            }
+            if (endRunnable != null) {
+                doOnEnd { endRunnable.run() }
+            }
+            this.interpolator = interpolator
+            this.duration = duration
+            start()
         }
-        if (endRunnable != null) {
-            valueAnimator.addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    endRunnable.run()
-                }
-            })
-        }
-        valueAnimator.interpolator = interpolator
-        valueAnimator.duration = duration
-        valueAnimator.start()
     }
 
     /**
      * 辅助方法来将给定的x, y映射到它相应的单元格
-     *
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @return
      */
     private fun checkForNewHit(x: Float, y: Float): Dot? {
         val rowHit: Int = getRowHit(y)
-        if (rowHit < 0) {
-            return null
-        }
         val columnHit: Int = getColumnHit(x)
-        if (columnHit < 0) {
+        if (rowHit < 0 || columnHit < 0) {
             return null
         }
         return if (mPatternDrawLookup[rowHit][columnHit]) {
@@ -810,11 +739,7 @@ class PatternLockView @JvmOverloads constructor(
     }
 
     /**
-     * 来找到y坐标所在的行
-     *
-     * @param y The y coordinate
-     * @return The mRow that y falls in, or -1 if it falls in no mRow
-     * y所在的mRow，如果没有mRow，则为-1
+     * 来找到y坐标所在的行，没有则返回-1
      */
     private fun getRowHit(y: Float): Int {
         val squareHeight = mViewHeight
@@ -830,11 +755,7 @@ class PatternLockView @JvmOverloads constructor(
     }
 
     /**
-     * 查找x所属的列
-     *
-     * @param x The x coordinate
-     * @return The mColumn that x falls in, or -1 if it falls in no mColumn
-     * 没有则返回-1
+     * 查找x所属的列，没有则返回-1
      */
     private fun getColumnHit(x: Float): Int {
         val squareWidth = mViewWidth
@@ -849,7 +770,7 @@ class PatternLockView @JvmOverloads constructor(
         return -1
     }
 
-    private fun handleActionMove(event: MotionEvent) {
+    private fun handleActionMove(event: MotionEvent):Boolean {
         val radius = mPathWidth.toFloat()
         val historySize = event.historySize
         mTempInvalidateRect.setEmpty()
@@ -857,8 +778,7 @@ class PatternLockView @JvmOverloads constructor(
         for (i in 0 until historySize + 1) {
             val x = if (i < historySize) event.getHistoricalX(i) else event.x
             val y = if (i < historySize) event.getHistoricalY(i) else event.y
-            val hitDot: Dot? =
-                detectAndAddHit(x, y)
+            val hitDot: Dot? = detectAndAddHit(x, y)
             val patternSize = mPattern.size
             if (hitDot != null && patternSize == 1) {
                 mPatternInProgress = true
@@ -911,25 +831,24 @@ class PatternLockView @JvmOverloads constructor(
             postInvalidate(mInvalidate.left,mInvalidate.top,mInvalidate.right,mInvalidate.bottom)
             mInvalidate.set(mTempInvalidateRect)
         }
+        return true
     }
 
     private fun sendAccessEvent(resId: Int) {
         announceForAccessibility(context.getString(resId))
     }
 
-    private fun handleActionUp(event: MotionEvent) {
+    private fun handleActionUp(event: MotionEvent):Boolean {
         if (mPattern.isNotEmpty()) {
             mPatternInProgress = false
             cancelLineAnimations()
             notifyPatternDetected()
             invalidate()
         }
-        if (PROFILE_DRAWING) {
-            if (mDrawingProfilingStarted) {
-                Debug.stopMethodTracing()
-                mDrawingProfilingStarted = false
-            }
+        if (PROFILE_DRAWING&&mDrawingProfilingStarted) {
+            mDrawingProfilingStarted = false
         }
+        return true
     }
 
     private fun cancelLineAnimations() {
@@ -945,7 +864,7 @@ class PatternLockView @JvmOverloads constructor(
         }
     }
 
-    private fun handleActionDown(event: MotionEvent) {
+    private fun handleActionDown(event: MotionEvent):Boolean {
         resetPattern()
         val x = event.x
         val y = event.y
@@ -972,20 +891,17 @@ class PatternLockView @JvmOverloads constructor(
         }
         mInProgressX = x
         mInProgressY = y
-        if (PROFILE_DRAWING) {
-            if (!mDrawingProfilingStarted) {
-                mDrawingProfilingStarted = true
-            }
+        if (PROFILE_DRAWING&&!mDrawingProfilingStarted) {
+            mDrawingProfilingStarted = true
         }
+        return true
     }
 
-    private fun getCenterXForColumn(column: Int): Float {
-        return paddingLeft + column * mViewWidth + mViewWidth / 2f
-    }
+    private fun getCenterXForColumn(column: Int): Float
+        = (paddingLeft + column * mViewWidth + mViewWidth / 2f)
 
-    private fun getCenterYForRow(row: Int): Float {
-        return paddingTop + row * mViewHeight + mViewHeight / 2f
-    }
+    private fun getCenterYForRow(row: Int): Float
+        = (paddingTop + row * mViewHeight + mViewHeight / 2f)
 
     private fun calculateLastSegmentAlpha(x: Float, y: Float, lastX: Float, lastY: Float): Float {
         val diffX = x - lastX
@@ -1018,9 +934,7 @@ class PatternLockView @JvmOverloads constructor(
         canvas.drawCircle(centerX, centerY, size / 2, dotPaint)
     }
 
-    /**
-     * GET
-     * */
+    /** GET */
 
     fun getPattern(): List<Dot> = mPattern.clone() as List<Dot>
 
